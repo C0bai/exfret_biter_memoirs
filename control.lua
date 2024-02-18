@@ -1,6 +1,7 @@
 require("names")
 require("scripts/show_biter_stats")
 require("scripts/initialize_unit")
+require("scripts/initialize_nest")
 require("scripts/memoir")
 require("scripts/nametags")
 
@@ -12,12 +13,17 @@ local function ensure_globals()
     if global.unit_info == nil then
         global.unit_info = {}
     end
+
+    if global.nest_info == nil then
+        global.nest_info = {}
+    end
 end
 
-function validate_unit(entity)
-
+function validate_unit(entity, unit_number)
     if not entity.valid then
-        global.unit_info[entity.unit_number] = nil
+        if unit_number ~= nil then
+            global.unit_info[entity.unit_number] = nil
+        end
         return
     elseif entity.type ~= "unit" then
         return
@@ -37,6 +43,23 @@ function validate_unit(entity)
     end
     if table_info.birth == nil then
         table_info.birth = game.tick
+    end
+end
+
+function validate_spawner(entity, position)
+    if not entity.valid then
+        if position ~= nil then
+            global.nest_info[position.x][position.y] = nil
+        end
+        return
+    elseif entity.type ~= "unit-spawner" then
+        return
+    end
+
+    local table_info = global.nest_info[entity.unit_number]
+
+    if table_info.name == nil then
+        table_info.name = global.nest_names[math.random(1, #global.nest_names)]
     end
 end
 
@@ -76,6 +99,12 @@ end)
 
 script.on_event(defines.events.on_tick, function(event)
     update_nametags()
+end)
+
+script.on_event(defines.events.on_script_trigger_effect, function(event)
+    if event.effect_id == "initialize_spawner_nest" then
+        initialize_nest(event)
+    end
 end)
 
 script.on_event("show-biter-info", function(event)
